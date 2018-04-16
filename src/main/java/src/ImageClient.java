@@ -1,21 +1,13 @@
-package tmp;
+package src;
 
 import org.apache.commons.net.util.Base64;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.IOUtils;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.Text;
 import sun.misc.BASE64Decoder;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
-import java.awt.image.WritableRaster;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
