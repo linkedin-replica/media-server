@@ -22,7 +22,8 @@ public class Main {
 		// start the server
 		String ip = Configuration.getInstance().getAppConfigProp("server.ip");
 		int port = Integer.parseInt(Configuration.getInstance().getAppConfigProp("server.port"));
-		new Server(ip, port).start();
+		Server.start(ip, port);
+
 	}
 	
 	public static void shutdown() throws FileNotFoundException, ClassNotFoundException, IOException, SQLException{

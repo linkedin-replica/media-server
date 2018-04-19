@@ -1,5 +1,6 @@
-package NettyHTTP;
+package com.linkedin.replica.mainServer.server.handlers;
 
+import com.linkedin.replica.mediaServer.MediaClient;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
@@ -11,6 +12,7 @@ import io.netty.util.CharsetUtil;
 import org.json.JSONObject;
 
 import java.io.*;
+import java.net.URISyntaxException;
 
 import static io.netty.handler.codec.http.HttpMethod.POST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CREATED;
@@ -26,7 +28,6 @@ public class HTTPUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
     protected void channelRead0(final ChannelHandlerContext ctx, final HttpObject httpObject) throws Exception {
         if (httpObject instanceof HttpRequest) {
             httpRequest = (HttpRequest) httpObject;
-
             if (httpRequest.method() == POST) {
                 httpDecoder = new HttpPostRequestDecoder(factory, httpRequest);
                 httpDecoder.setDiscardThreshold(0);
@@ -59,13 +60,13 @@ public class HTTPUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
                         case FileUpload:
                             final FileUpload fileUpload = (FileUpload) data;
 
-//                            String url = CouchDBClientSingleton.getInstance().createAttachment(
-//                                    fileUpload.getContentType(),
-//                                    new FileInputStream(fileUpload.getFile())
-//                            );
-
-                            String url = "Done";
-                            System.out.println("ENter");
+                            String url = null;
+                            try {
+                                System.out.println(fileUpload.getContentType() + "sssss");
+                                url = MediaClient.writeFile(fileUpload.getFile());
+                            } catch (URISyntaxException e) {
+                                e.printStackTrace();
+                            }
                             sendResponse(ctx, CREATED, url);
                             break;
                     }

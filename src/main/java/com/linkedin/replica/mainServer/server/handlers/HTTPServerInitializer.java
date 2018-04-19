@@ -1,4 +1,4 @@
-package NettyHTTP;
+package com.linkedin.replica.mainServer.server.handlers;
 
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
