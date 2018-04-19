@@ -32,6 +32,22 @@ public class ImageClient {
         return "/webhdfs/v1/images/" + imageId.toString() + "?op=OPEN";
     }
 
+    public static String writeFile(File file) throws IOException, URISyntaxException {
+        System.setProperty("HADOOP_USER_NAME", "hduser");
+        Configuration config = new Configuration();
+
+        FileInputStream fileInputStreamReader = new FileInputStream(file);
+        byte[] bytes = new byte[(int)file.length()];
+        fileInputStreamReader.read(bytes);
+        BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
+
+        FileSystem fs = FileSystem.get(new URI( "hdfs://localhost:9000" ), config );
+        UUID imageId = UUID.randomUUID();
+        Path path = new Path("hdfs://localhost:9000/images/" + imageId.toString());
+        ImageIO.write(image,"PNG", fs.create(path));
+        return "/webhdfs/v1/images/" + imageId.toString() + "?op=OPEN";
+    }
+
     public static void main(String[] args) throws Exception {
         File file = new File("lights.jpg");
         FileInputStream fileInputStreamReader = new FileInputStream("lights.jpg");
