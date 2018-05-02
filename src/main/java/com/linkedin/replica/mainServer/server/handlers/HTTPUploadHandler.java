@@ -1,6 +1,11 @@
 package com.linkedin.replica.mainServer.server.handlers;
 
+import com.linkedin.replica.mainServer.config.Configuration;
+import com.linkedin.replica.mainServer.exceptions.MediaServerException;
 import com.linkedin.replica.mediaServer.MediaClient;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
@@ -29,6 +34,11 @@ public class HTTPUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
         if (httpObject instanceof HttpRequest) {
             httpRequest = (HttpRequest) httpObject;
             if (httpRequest.method() == POST) {
+                String token = httpRequest.headers().get("access-token");
+                System.out.println(token);
+                String secretKey = Configuration.getInstance().getAppConfigProp("secret.key");
+                if(token != null && !validateToken(token, secretKey))
+                        throw new MediaServerException("Failed to validate token");
                 httpDecoder = new HttpPostRequestDecoder(factory, httpRequest);
                 httpDecoder.setDiscardThreshold(0);
             } else {
@@ -46,6 +56,35 @@ public class HTTPUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
                     resetPostRequestDecoder();
                 }
             }
+        }
+    }
+
+    /**
+     * Get claims (stored data) from a valid token
+     * @param token
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+    private static Jws<Claims> getClaims(String token, String secretKey) throws UnsupportedEncodingException {
+        return Jwts.parser()
+                .setSigningKey(secretKey.getBytes("UTF-8"))
+                .parseClaimsJws(token);
+    }
+
+
+    /**
+     * Validate jwt token
+     *
+     * @param token jwt token to be authenticated
+     * @return Weather
+     */
+
+    private static boolean validateToken(String token, String secretKey) {
+        try {
+            getClaims(token, secretKey);
+            return true;
+        } catch (Exception ex) {
+            return false;
         }
     }
 

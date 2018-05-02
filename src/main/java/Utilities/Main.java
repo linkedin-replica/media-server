@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.UUID;
 
+
 public class Main {
     public static String generateUUID() {
         return UUID.randomUUID().toString();
