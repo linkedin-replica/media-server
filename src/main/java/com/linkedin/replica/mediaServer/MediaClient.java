@@ -29,6 +29,10 @@ public class MediaClient {
         Path path = new Path(hadoopPath + "/media/" + fileId.toString());
         OutputStream out = hadoopFS.create(path);
         IOUtils.copyBytes(in, out, 4096, true);
-        return "/webhdfs/v1/media/" + fileId.toString() + "?op=OPEN";
+        return String.format("http://%s:%s/webhdfs/v1/media/%s?op=OPEN",
+                configuration.getAppConfigProp("hadoop.namenode.ip"),
+                configuration.getAppConfigProp("hadoop.namenode.port"),
+                configuration.getAppConfigProp("hadoop.namenode.port"),
+                fileId.toString());
     }
 }
