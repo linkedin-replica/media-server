@@ -101,7 +101,7 @@ public class HTTPUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
 
                             String url = null;
                             try {
-                                System.out.println(fileUpload.getContentType() + "sssss");
+                                System.out.println("File type: " + fileUpload.getContentType());
                                 url = MediaClient.writeFile(fileUpload.getFile());
                             } catch (URISyntaxException e) {
                                 e.printStackTrace();
