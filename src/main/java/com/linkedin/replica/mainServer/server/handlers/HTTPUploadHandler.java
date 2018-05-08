@@ -1,5 +1,6 @@
 package com.linkedin.replica.mainServer.server.handlers;
 
+import com.google.gson.Gson;
 import com.linkedin.replica.mainServer.config.Configuration;
 import com.linkedin.replica.mainServer.exceptions.MediaServerException;
 import com.linkedin.replica.mediaServer.MediaClient;
@@ -18,6 +19,8 @@ import org.json.JSONObject;
 
 import java.io.*;
 import java.net.URISyntaxException;
+import java.nio.file.InvalidPathException;
+import java.util.LinkedHashMap;
 
 import static io.netty.handler.codec.http.HttpMethod.POST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CREATED;
@@ -35,15 +38,14 @@ public class HTTPUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
             httpRequest = (HttpRequest) httpObject;
             if (httpRequest.method() == POST) {
                 String token = httpRequest.headers().get("access-token");
-                System.out.println(token);
                 String secretKey = Configuration.getInstance().getAppConfigProp("secret.key");
-                if(token != null && !validateToken(token, secretKey))
+                if(token == null || !validateToken(token, secretKey))
                         throw new MediaServerException("Failed to validate token");
                 httpDecoder = new HttpPostRequestDecoder(factory, httpRequest);
                 httpDecoder.setDiscardThreshold(0);
-            } else {
-                sendResponse(ctx, METHOD_NOT_ALLOWED, null);
-            }
+            } else
+                sendResponse(ctx, METHOD_NOT_ALLOWED, "error","Method not allowed");
+
         }
 
         if (httpDecoder != null) {
@@ -88,7 +90,7 @@ public class HTTPUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
         }
     }
 
-    private void readChunk(ChannelHandlerContext ctx) throws IOException {
+    private void readChunk(ChannelHandlerContext ctx) throws IOException, URISyntaxException {
         while (httpDecoder.hasNext()) {
             InterfaceHttpData data = httpDecoder.next();
             if (data != null) {
@@ -98,15 +100,8 @@ public class HTTPUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
                             break;
                         case FileUpload:
                             final FileUpload fileUpload = (FileUpload) data;
-
-                            String url = null;
-                            try {
-                                System.out.println(fileUpload.getContentType() + "sssss");
-                                url = MediaClient.writeFile(fileUpload.getFile());
-                            } catch (URISyntaxException e) {
-                                e.printStackTrace();
-                            }
-                            sendResponse(ctx, CREATED, url);
+                            String url =  MediaClient.writeFile(fileUpload.getFile());
+                            sendResponse(ctx, CREATED, "url", url);
                             break;
                     }
                 } finally {
@@ -116,15 +111,12 @@ public class HTTPUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
         }
     }
 
-    private static void sendResponse(ChannelHandlerContext ctx, HttpResponseStatus status, String message) {
-        JSONObject data = new JSONObject();
-        data.put("url", message);
+    private static void sendResponse(ChannelHandlerContext ctx, HttpResponseStatus status, String keyRespond, String valueRespond) {
+        LinkedHashMap<String, Object> responseBody = new LinkedHashMap<String, Object>();
+        responseBody.put(keyRespond, valueRespond);
+        String json = new Gson().toJson(responseBody);
 
-        JSONObject outgoingJSON = new JSONObject();
-        outgoingJSON.put("error", JSONObject.NULL);
-        outgoingJSON.put("data", data);
-
-        ByteBuf content = Unpooled.copiedBuffer(outgoingJSON.toString(), CharsetUtil.UTF_8);
+        ByteBuf content = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
         FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status, content);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json");
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
@@ -138,8 +130,13 @@ public class HTTPUploadHandler extends SimpleChannelInboundHandler<HttpObject> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        System.out.println("Got exception " + cause);
-        ctx.channel().close();
+        System.err.println("Got exception " + cause.getMessage());
+        HttpResponseStatus status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
+        if (cause instanceof InvalidPathException)
+            status = HttpResponseStatus.NOT_FOUND;
+        else if (cause instanceof MediaServerException)
+            status = HttpResponseStatus.UNAUTHORIZED;
+        sendResponse(ctx, status,"error", cause.getMessage());
     }
 
     @Override
